@@ -5,6 +5,8 @@ import {
     rippleModuleFactory,
     blockbookWorkerFactory,
     blockbookModuleFactory,
+    cardanoWorkerFactory,
+    cardanoModuleFactory,
 } from './worker';
 
 const backends = [
@@ -19,6 +21,11 @@ const backends = [
         worker: rippleWorkerFactory,
     },
     {
+        name: 'nodejs-build:cardano',
+        type: 'cardano',
+        worker: cardanoWorkerFactory,
+    },
+    {
         name: 'module-build:blockbook',
         type: 'blockbook',
         worker: blockbookModuleFactory,
@@ -27,6 +34,11 @@ const backends = [
         name: 'module-build:ripple',
         type: 'ripple',
         worker: rippleModuleFactory,
+    },
+    {
+        name: 'module-build:cardano',
+        type: 'cardano',
+        worker: cardanoModuleFactory,
     },
 ];
 

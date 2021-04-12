@@ -19,7 +19,28 @@ export default {
             error: '-22: TX decode failed',
         },
     ],
-
+    cardano: [
+        {
+            description: 'Successful',
+            params: 'A',
+            serverFixtures: [
+                {
+                    method: 'PUSH_TRANSACTION',
+                    response: {
+                        data: {
+                            result: 'cardano_push_tx_result',
+                        },
+                    },
+                },
+            ],
+            response: 'cardano_push_tx_result',
+        },
+        {
+            description: 'Unsuccessful',
+            params: 'A',
+            error: 'Message not set',
+        },
+    ],
     ripple: [
         {
             description: 'Successful',

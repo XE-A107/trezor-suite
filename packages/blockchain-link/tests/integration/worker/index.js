@@ -1,6 +1,7 @@
 import TinyWorker from 'tiny-worker';
 import BlockbookWorkerModule from '../../../build/module/blockbook-worker';
 import RippleWorkerModule from '../../../build/module/ripple-worker';
+import CardanoWorkerModule from '../../../build/module/cardano-worker';
 
 export const rippleWorkerFactory = () => {
     if (typeof Worker === 'undefined') {
@@ -30,4 +31,15 @@ export const blockbookWorkerFactory = () => {
 
 export const blockbookModuleFactory = () => {
     return new BlockbookWorkerModule();
+};
+
+export const cardanoWorkerFactory = () => {
+    if (typeof Worker === 'undefined') {
+        return new TinyWorker('./build/node/cardano-worker.js');
+    }
+    return new Worker('./build/web/cardano-worker.js');
+};
+
+export const cardanoModuleFactory = () => {
+    return new CardanoWorkerModule();
 };

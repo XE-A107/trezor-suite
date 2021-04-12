@@ -1,23 +1,18 @@
 import { CustomError } from '../../constants/errors';
 import { MESSAGES, RESPONSES } from '../../constants';
-import Connection from './websocket';
-import * as utils from './utils';
-
-import { Message, Response, SubscriptionAccountInfo } from '../../types';
-import {
-    AddressNotification,
-    BlockNotification,
-    FiatRatesNotification,
-} from '../../types/blockbook';
 import * as MessageTypes from '../../types/messages';
+import Connection from './websocket';
+import { SubscriptionAccountInfo } from '../../types/common';
+import { Response, Message } from '../../types';
 import WorkerCommon from '../common';
+import { BlockfrostTransaction, BlockContent } from '../../types/cardano';
+import { transformUtxos, transformAccountInfo, transformTransaction } from './utils';
 
 declare function postMessage(data: Response): void;
 
 const common = new WorkerCommon(postMessage);
 
 let api: Connection | undefined;
-let endpoints: string[] = [];
 
 const cleanup = () => {
     if (api) {
@@ -25,7 +20,7 @@ const cleanup = () => {
         api.removeAllListeners();
         api = undefined;
     }
-    endpoints = [];
+
     common.removeAccounts(common.getAccounts());
     common.removeAddresses(common.getAddresses());
     common.clearSubscriptions();
@@ -34,19 +29,16 @@ const cleanup = () => {
 const connect = async (): Promise<Connection> => {
     if (api && api.isConnected()) return api;
 
-    // validate endpoints
     const { server, timeout, pingTimeout, keepAlive } = common.getSettings();
     if (!server || !Array.isArray(server) || server.length < 1) {
         throw new CustomError('connect', 'Endpoint not set');
     }
 
-    if (endpoints.length < 1) {
-        endpoints = common.shuffleEndpoints(server.slice(0));
-    }
+    common.debug('Connecting to cardano', server[0]);
 
-    common.debug('Connecting to', endpoints[0]);
     const connection = new Connection({
-        url: endpoints[0],
+        // server is load balanced
+        url: server[0],
         timeout,
         pingTimeout,
         keepAlive,
@@ -58,13 +50,7 @@ const connect = async (): Promise<Connection> => {
     } catch (error) {
         common.debug('Websocket connection failed');
         api = undefined;
-        // connection error. remove endpoint
-        endpoints.splice(0, 1);
-        // and try another one or throw error
-        if (endpoints.length < 1) {
-            throw new CustomError('connect', 'All backends are down');
-        }
-        return connect();
+        throw new CustomError('connect', 'All backends are down');
     }
 
     connection.on('disconnected', () => {
@@ -78,6 +64,7 @@ const connect = async (): Promise<Connection> => {
     });
 
     common.debug('Connected');
+
     return connection;
 };
 
@@ -90,7 +77,7 @@ const getInfo = async (data: { id: number } & MessageTypes.GetInfo): Promise<voi
             type: RESPONSES.GET_INFO,
             payload: {
                 url: socket.options.url,
-                ...utils.transformServerInfo(info),
+                ...info,
             },
         });
     } catch (error) {
@@ -100,118 +87,12 @@ const getInfo = async (data: { id: number } & MessageTypes.GetInfo): Promise<voi
 
 const getBlockHash = async (data: { id: number } & MessageTypes.GetBlockHash): Promise<void> => {
     try {
-        const blockNumber = data.payload;
         const socket = await connect();
-        const info = await socket.getBlockHash(blockNumber);
+        const blockMessage = await socket.getBlockHash(data.payload);
         common.response({
             id: data.id,
             type: RESPONSES.GET_BLOCK_HASH,
-            payload: info.hash,
-        });
-    } catch (error) {
-        common.errorHandler({ id: data.id, error });
-    }
-};
-
-const getAccountInfo = async (
-    data: { id: number } & MessageTypes.GetAccountInfo
-): Promise<void> => {
-    const { payload } = data;
-    try {
-        const socket = await connect();
-        const info = await socket.getAccountInfo(payload);
-        common.response({
-            id: data.id,
-            type: RESPONSES.GET_ACCOUNT_INFO,
-            payload: utils.transformAccountInfo(info),
-        });
-    } catch (error) {
-        common.errorHandler({ id: data.id, error });
-    }
-};
-
-const getAccountUtxo = async (
-    data: { id: number } & MessageTypes.GetAccountUtxo
-): Promise<void> => {
-    const { payload } = data;
-    try {
-        const socket = await connect();
-        const utxos = await socket.getAccountUtxo(payload);
-        common.response({
-            id: data.id,
-            type: RESPONSES.GET_ACCOUNT_UTXO,
-            payload: utils.transformAccountUtxo(utxos),
-        });
-    } catch (error) {
-        common.errorHandler({ id: data.id, error });
-    }
-};
-
-const getAccountBalanceHistory = async (
-    data: { id: number } & MessageTypes.GetAccountBalanceHistory
-): Promise<void> => {
-    const { payload } = data;
-    try {
-        const socket = await connect();
-        const history = await socket.getAccountBalanceHistory(payload);
-        common.response({
-            id: data.id,
-            type: RESPONSES.GET_ACCOUNT_BALANCE_HISTORY,
-            payload: history,
-        });
-    } catch (error) {
-        common.errorHandler({ id: data.id, error });
-    }
-};
-
-const getCurrentFiatRates = async (
-    data: { id: number } & MessageTypes.GetCurrentFiatRates
-): Promise<void> => {
-    const { payload } = data;
-    try {
-        const socket = await connect();
-        const fiatRates = await socket.getCurrentFiatRates(payload);
-        common.response({
-            id: data.id,
-            type: RESPONSES.GET_CURRENT_FIAT_RATES,
-            payload: fiatRates,
-        });
-    } catch (error) {
-        common.errorHandler({ id: data.id, error });
-    }
-};
-
-const getFiatRatesForTimestamps = async (
-    data: { id: number } & MessageTypes.GetFiatRatesForTimestamps
-): Promise<void> => {
-    const { payload } = data;
-    try {
-        const socket = await connect();
-        const { tickers } = await socket.getFiatRatesForTimestamps(payload);
-        common.response({
-            id: data.id,
-            type: RESPONSES.GET_FIAT_RATES_FOR_TIMESTAMPS,
-            payload: { tickers },
-        });
-    } catch (error) {
-        common.errorHandler({ id: data.id, error });
-    }
-};
-
-const getFiatRatesTickersList = async (
-    data: { id: number } & MessageTypes.GetFiatRatesTickersList
-): Promise<void> => {
-    const { payload } = data;
-    try {
-        const socket = await connect();
-        const tickers = await socket.getFiatRatesTickersList(payload);
-        common.response({
-            id: data.id,
-            type: RESPONSES.GET_FIAT_RATES_TICKERS_LIST,
-            payload: {
-                ts: tickers.ts,
-                availableCurrencies: tickers.available_currencies, // convert to camelCase
-            },
+            payload: blockMessage.hash,
         });
     } catch (error) {
         common.errorHandler({ id: data.id, error });
@@ -229,9 +110,27 @@ const getTransaction = async (
             id: data.id,
             type: RESPONSES.GET_TRANSACTION,
             payload: {
-                type: 'blockbook',
+                type: 'cardano',
                 tx,
             },
+        });
+    } catch (error) {
+        common.errorHandler({ id: data.id, error });
+    }
+};
+
+const estimateFee = async (data: { id: number } & MessageTypes.EstimateFee): Promise<void> => {
+    try {
+        const socket = await connect();
+        const resp = await socket.estimateFee(data.payload);
+        const feeOptions: { feePerUnit: string }[] = [];
+
+        feeOptions.push({ feePerUnit: resp.lovelacePerByte.toString() });
+
+        common.response({
+            id: data.id,
+            type: RESPONSES.ESTIMATE_FEE,
+            payload: feeOptions,
         });
     } catch (error) {
         common.errorHandler({ id: data.id, error });
@@ -243,6 +142,7 @@ const pushTransaction = async (
 ): Promise<void> => {
     try {
         const socket = await connect();
+
         const resp = await socket.pushTransaction(data.payload);
         common.response({
             id: data.id,
@@ -254,39 +154,59 @@ const pushTransaction = async (
     }
 };
 
-const estimateFee = async (data: { id: number } & MessageTypes.EstimateFee): Promise<void> => {
+const getAccountInfo = async (
+    data: { id: number } & MessageTypes.GetAccountInfo
+): Promise<void> => {
+    const { payload } = data;
     try {
         const socket = await connect();
-        const resp = await socket.estimateFee(data.payload);
+        const info = await socket.getAccountInfo(payload);
         common.response({
             id: data.id,
-            type: RESPONSES.ESTIMATE_FEE,
-            payload: resp,
+            type: RESPONSES.GET_ACCOUNT_INFO,
+            payload: transformAccountInfo(info),
         });
     } catch (error) {
         common.errorHandler({ id: data.id, error });
     }
 };
 
-const onNewBlock = (event: BlockNotification) => {
+const getAccountUtxo = async (
+    data: { id: number } & MessageTypes.GetAccountUtxo
+): Promise<void> => {
+    const { payload } = data;
+    try {
+        const socket = await connect();
+        const utxos = await socket.getAccountUtxo(payload);
+
+        common.response({
+            id: data.id,
+            type: RESPONSES.GET_ACCOUNT_UTXO,
+            payload: transformUtxos(utxos),
+        });
+    } catch (error) {
+        common.errorHandler({ id: data.id, error });
+    }
+};
+
+const onNewBlock = (event: BlockContent) => {
     common.response({
         id: -1,
         type: RESPONSES.NOTIFICATION,
         payload: {
             type: 'block',
             payload: {
-                blockHeight: event.height,
+                blockHeight: event.height || 0,
                 blockHash: event.hash,
             },
         },
     });
 };
 
-const onTransaction = (event: AddressNotification) => {
-    if (!event.tx) return;
+const onTransaction = (event: BlockfrostTransaction) => {
     const descriptor = event.address;
-    // check if there is subscribed account with received address
     const account = common.getAccount(descriptor);
+
     common.response({
         id: -1,
         type: RESPONSES.NOTIFICATION,
@@ -295,46 +215,11 @@ const onTransaction = (event: AddressNotification) => {
             payload: {
                 descriptor: account ? account.descriptor : descriptor,
                 tx: account
-                    ? utils.transformTransaction(account.descriptor, account.addresses, event.tx)
-                    : utils.transformTransaction(descriptor, undefined, event.tx),
+                    ? transformTransaction(account.descriptor, account.addresses, event)
+                    : transformTransaction(descriptor, undefined, event),
             },
         },
     });
-};
-
-const onNewFiatRates = (event: FiatRatesNotification) => {
-    common.response({
-        id: -1,
-        type: RESPONSES.NOTIFICATION,
-        payload: {
-            type: 'fiatRates',
-            payload: {
-                rates: event.rates,
-            },
-        },
-    });
-};
-
-const subscribeAccounts = async (accounts: SubscriptionAccountInfo[]) => {
-    common.addAccounts(accounts);
-    // subscribe to new blocks, confirmed and mempool transactions for given addresses
-    const socket = await connect();
-    if (!common.getSubscription('notification')) {
-        socket.on('notification', onTransaction);
-        common.addSubscription('notification');
-    }
-    return socket.subscribeAddresses(common.getAddresses());
-};
-
-const subscribeAddresses = async (addresses: string[]) => {
-    common.addAddresses(addresses);
-    // subscribe to new blocks, confirmed and mempool transactions for given addresses
-    const socket = await connect();
-    if (!common.getSubscription('notification')) {
-        socket.on('notification', onTransaction);
-        common.addSubscription('notification');
-    }
-    return socket.subscribeAddresses(common.getAddresses());
 };
 
 const subscribeBlock = async () => {
@@ -345,17 +230,31 @@ const subscribeBlock = async () => {
     return socket.subscribeBlock();
 };
 
-const subscribeFiatRates = async (currency?: string) => {
+const subscribeAccounts = async (accounts: SubscriptionAccountInfo[]) => {
+    common.addAccounts(accounts);
     const socket = await connect();
-    if (!common.getSubscription('fiatRates')) {
-        common.addSubscription('fiatRates');
-        socket.on('fiatRates', onNewFiatRates);
+    if (!common.getSubscription('notification')) {
+        socket.on('notification', onTransaction);
+        common.addSubscription('notification');
     }
-    return socket.subscribeFiatRates(currency);
+
+    return socket.subscribeAddresses(common.getAddresses());
+};
+
+const subscribeAddresses = async (addresses: string[]) => {
+    common.addAddresses(addresses);
+    const socket = await connect();
+    if (!common.getSubscription('notification')) {
+        socket.on('notification', onTransaction);
+        common.addSubscription('notification');
+    }
+
+    return socket.subscribeAddresses(common.getAddresses());
 };
 
 const subscribe = async (data: { id: number } & MessageTypes.Subscribe): Promise<void> => {
     const { payload } = data;
+
     try {
         let response;
         if (payload.type === 'accounts') {
@@ -364,8 +263,6 @@ const subscribe = async (data: { id: number } & MessageTypes.Subscribe): Promise
             response = await subscribeAddresses(payload.addresses);
         } else if (payload.type === 'block') {
             response = await subscribeBlock();
-        } else if (payload.type === 'fiatRates') {
-            response = await subscribeFiatRates(payload.currency);
         } else {
             throw new CustomError('invalid_param', '+type');
         }
@@ -378,6 +275,14 @@ const subscribe = async (data: { id: number } & MessageTypes.Subscribe): Promise
     } catch (error) {
         common.errorHandler({ id: data.id, error });
     }
+};
+
+const unsubscribeBlock = async () => {
+    if (!common.getSubscription('block')) return { subscribed: false };
+    const socket = await connect();
+    socket.removeListener('block', onNewBlock);
+    common.removeSubscription('block');
+    return socket.unsubscribeBlock();
 };
 
 const unsubscribeAccounts = async (accounts?: SubscriptionAccountInfo[]) => {
@@ -414,22 +319,6 @@ const unsubscribeAddresses = async (addresses?: string[]) => {
     return socket.subscribeAddresses(subscribed);
 };
 
-const unsubscribeBlock = async () => {
-    if (!common.getSubscription('block')) return { subscribed: false };
-    const socket = await connect();
-    socket.removeListener('block', onNewBlock);
-    common.removeSubscription('block');
-    return socket.unsubscribeBlock();
-};
-
-const unsubscribeFiatRates = async () => {
-    if (!common.getSubscription('fiatRates')) return { subscribed: false };
-    const socket = await connect();
-    socket.removeListener('fiatRates', onNewBlock);
-    common.removeSubscription('fiatRates');
-    return socket.unsubscribeFiatRates();
-};
-
 const unsubscribe = async (data: { id: number } & MessageTypes.Unsubscribe): Promise<void> => {
     const { payload } = data;
     try {
@@ -440,8 +329,6 @@ const unsubscribe = async (data: { id: number } & MessageTypes.Unsubscribe): Pro
             response = await unsubscribeAddresses(payload.addresses);
         } else if (payload.type === 'block') {
             response = await unsubscribeBlock();
-        } else if (payload.type === 'fiatRates') {
-            response = await unsubscribeFiatRates();
         } else {
             throw new CustomError('invalid_param', '+type');
         }
@@ -469,13 +356,13 @@ const disconnect = async (data: { id: number }) => {
     }
 };
 
-// WebWorker message handling
 onmessage = (event: { data: Message }) => {
     if (!event.data) return;
     const { data } = event;
     const { id, type } = data;
 
     common.debug('onmessage', data);
+
     switch (data.type) {
         case MESSAGES.HANDSHAKE:
             common.setSettings(data.settings);
@@ -490,35 +377,23 @@ onmessage = (event: { data: Message }) => {
         case MESSAGES.GET_INFO:
             getInfo(data);
             break;
-        case MESSAGES.GET_BLOCK_HASH:
-            getBlockHash(data);
-            break;
-        case MESSAGES.GET_ACCOUNT_INFO:
-            getAccountInfo(data);
-            break;
         case MESSAGES.GET_ACCOUNT_UTXO:
             getAccountUtxo(data);
+            break;
+        case MESSAGES.PUSH_TRANSACTION:
+            pushTransaction(data);
+            break;
+        case MESSAGES.GET_BLOCK_HASH:
+            getBlockHash(data);
             break;
         case MESSAGES.GET_TRANSACTION:
             getTransaction(data);
             break;
-        case MESSAGES.GET_ACCOUNT_BALANCE_HISTORY:
-            getAccountBalanceHistory(data);
-            break;
-        case MESSAGES.GET_CURRENT_FIAT_RATES:
-            getCurrentFiatRates(data);
-            break;
-        case MESSAGES.GET_FIAT_RATES_FOR_TIMESTAMPS:
-            getFiatRatesForTimestamps(data);
-            break;
-        case MESSAGES.GET_FIAT_RATES_TICKERS_LIST:
-            getFiatRatesTickersList(data);
-            break;
         case MESSAGES.ESTIMATE_FEE:
             estimateFee(data);
             break;
-        case MESSAGES.PUSH_TRANSACTION:
-            pushTransaction(data);
+        case MESSAGES.GET_ACCOUNT_INFO:
+            getAccountInfo(data);
             break;
         case MESSAGES.SUBSCRIBE:
             subscribe(data);

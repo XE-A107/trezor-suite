@@ -50,4 +50,32 @@ export default {
             error: 'RippledError Error msg',
         },
     ],
+    cardano: [
+        {
+            description: 'Success',
+            response: {
+                blockHeight: 1,
+                blockHash: 'test_block_hash-hash',
+                decimals: 6,
+                name: 'Cardano',
+                shortcut: 'ada',
+                testnet: false,
+                version: '1.4.0',
+            },
+        },
+        {
+            description: 'Error',
+            serverFixtures: [
+                {
+                    method: 'GET_SERVER_INFO',
+                    response: {
+                        data: {
+                            error: { message: 'CardanoError Error msg' },
+                        },
+                    },
+                },
+            ],
+            error: 'CardanoError Error msg',
+        },
+    ],
 };

@@ -19,7 +19,10 @@
         "javascript"
     ],
     "main": "./lib/index.js",
-    "files": ["lib/", "build/"],
+    "files": [
+        "lib/",
+        "build/"
+    ],
     "types": "lib/index.d.ts",
     "typings": "lib/index.d.ts",
     "browser": {
@@ -54,6 +57,7 @@
         "worker-loader": "^3.0.8"
     },
     "dependencies": {
+        "@emurgo/cip14-js": "2.0.0",
         "bignumber.js": "^9.0.1",
         "es6-promise": "^4.2.8",
         "events": "^3.2.0",

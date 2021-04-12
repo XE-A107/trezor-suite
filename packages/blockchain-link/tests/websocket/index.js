@@ -1,12 +1,14 @@
 import WebSocket, { Server } from 'ws';
-import * as assert from 'assert';
+import assert from 'assert';
 import getFreePort from './freePort';
 import defaultBlockbookResponses from './fixtures/blockbook';
 import defaultRippleResponses from './fixtures/ripple';
+import defaultCardanoResponses from './fixtures/cardano';
 
-const RESPONSES = {
+const DEFAULT_RESPONSES = {
     blockbook: defaultBlockbookResponses,
     ripple: defaultRippleResponses,
+    cardano: defaultCardanoResponses,
 };
 
 const create = async type => {
@@ -14,7 +16,7 @@ const create = async type => {
     const server = new Server({ port, noServer: true });
     const { close } = server;
 
-    const defaultResponses = RESPONSES[type];
+    const defaultResponses = DEFAULT_RESPONSES[type];
     const connections = [];
     let addresses;
 
@@ -24,6 +26,7 @@ const create = async type => {
         const method = type === 'blockbook' ? request.method : request.command;
         let data;
         let delay = 0;
+
         if (Array.isArray(fixtures)) {
             // find nearest predefined fixture with this method
             const fid = fixtures.findIndex(f => f && f.method === method);
@@ -36,6 +39,7 @@ const create = async type => {
                 fixtures.splice(fid, 1);
             }
         }
+
         if (!data) {
             data = defaultResponses[method] || {
                 error: { message: `unknown response for ${method}` },
@@ -61,12 +65,17 @@ const create = async type => {
             if (!request) {
                 throw new Error('Unknown request');
             }
-            // console.log('REQUEST', request);
             if (type === 'blockbook') {
                 if (typeof request.method !== 'string') {
                     throw new Error('Unknown blockbook request without method');
                 }
                 server.emit(`blockbook_${request.method}`, request);
+            } else if (type === 'cardano') {
+                if (typeof request.command !== 'string') {
+                    throw new Error('Unknown cardano request without method');
+                }
+
+                server.emit(`cardano_${request.command}`, request);
             } else if (type === 'ripple') {
                 if (typeof request.command !== 'string') {
                     throw new Error('Unknown ripple request without command');
@@ -87,27 +96,16 @@ const create = async type => {
     });
 
     // Blockbook
-
     server.on('blockbook_getInfo', request => sendResponse(request));
-
     server.on('blockbook_getBlockHash', request => sendResponse(request));
-
     server.on('blockbook_getAccountInfo', request => sendResponse(request));
-
     server.on('blockbook_getAccountUtxo', request => sendResponse(request));
-
     server.on('blockbook_getTransaction', request => sendResponse(request));
-
     server.on('blockbook_getTransactionSpecific', request => sendResponse(request));
-
     server.on('blockbook_estimateFee', request => sendResponse(request));
-
     server.on('blockbook_sendTransaction', request => sendResponse(request));
-
     server.on('blockbook_subscribeNewBlock', request => sendResponse(request));
-
     server.on('blockbook_unsubscribeNewBlock', request => sendResponse(request));
-
     server.on('blockbook_subscribeAddresses', request => {
         addresses = request.params.addresses; // eslint-disable-line prefer-destructuring
         sendResponse(request);
@@ -118,8 +116,27 @@ const create = async type => {
         sendResponse(request);
     });
 
-    // Ripple
+    // Cardano
+    server.on('cardano_GET_BLOCK', request => sendResponse(request));
+    server.on('cardano_GET_SERVER_INFO', request => sendResponse(request));
+    server.on('cardano_GET_ACCOUNT_INFO', request => sendResponse(request));
+    server.on('cardano_ESTIMATE_FEE', request => sendResponse(request));
+    server.on('cardano_GET_ACCOUNT_UTXO', request => sendResponse(request));
+    server.on('cardano_GET_TRANSACTION', request => sendResponse(request));
+    server.on('cardano_PUSH_TRANSACTION', request => sendResponse(request));
+    server.on('cardano_SUBSCRIBE_ADDRESS', request => {
+        addresses = request.params.addresses; // eslint-disable-line prefer-destructuring
+        sendResponse(request);
+    });
 
+    server.on('cardano_UNSUBSCRIBE_ADDRESS', request => {
+        addresses = undefined;
+        sendResponse(request);
+    });
+    server.on('cardano_SUBSCRIBE_BLOCK', request => sendResponse(request));
+    server.on('cardano_UNSUBSCRIBE_BLOCK', request => sendResponse(request));
+
+    // Ripple
     server.on('ripple_subscribe', request => {
         if (Array.isArray(request.accounts_proposed)) {
             if (!Array.isArray(addresses)) {
@@ -140,6 +157,7 @@ const create = async type => {
         }
         sendResponse(request);
     });
+
     server.on('ripple_server_info', request => sendResponse(request));
     server.on('ripple_account_info', request => sendResponse(request));
     server.on('ripple_account_tx', request => sendResponse(request));
@@ -196,7 +214,7 @@ const create = async type => {
 
 export default create;
 
-const connectToServer = async server => {
+const connectToServer = server => {
     return new Promise((resolve, reject) => {
         const ws = new WebSocket(`ws://localhost:${server.options.port}`);
         const dfd = ws.once('error', reject);
@@ -204,7 +222,7 @@ const connectToServer = async server => {
     });
 };
 
-const receiveMessage = async ws => {
+const receiveMessage = ws => {
     return new Promise(resolve => {
         ws.on('close', () => setTimeout(resolve, 100));
         // ws.on('close', resolve);
