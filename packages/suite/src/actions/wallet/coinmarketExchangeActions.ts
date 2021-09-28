@@ -31,6 +31,7 @@ export type CoinmarketExchangeAction =
           type: typeof COINMARKET_EXCHANGE.SAVE_QUOTES;
           fixedQuotes: ExchangeTrade[];
           floatQuotes: ExchangeTrade[];
+          dexQuotes: ExchangeTrade[];
       }
     | {
           type: typeof COINMARKET_COMMON.SAVE_TRADE;
@@ -146,8 +147,10 @@ export const saveTransactionId = (transactionId: string): CoinmarketExchangeActi
 export const saveQuotes = (
     fixedQuotes: ExchangeTrade[],
     floatQuotes: ExchangeTrade[],
+    dexQuotes: ExchangeTrade[],
 ): CoinmarketExchangeAction => ({
     type: COINMARKET_EXCHANGE.SAVE_QUOTES,
     fixedQuotes,
     floatQuotes,
+    dexQuotes,
 });

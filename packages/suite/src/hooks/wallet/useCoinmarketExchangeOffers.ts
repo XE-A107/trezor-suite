@@ -9,7 +9,7 @@ import * as routerActions from '@suite-actions/routerActions';
 import { Account } from '@wallet-types';
 import { Props, ContextValues, ExchangeStep } from '@wallet-types/coinmarketExchangeOffers';
 import * as notificationActions from '@suite-actions/notificationActions';
-import { splitToFixedFloatQuotes } from '@wallet-utils/coinmarket/exchangeUtils';
+import { splitToQuoteCategories } from '@wallet-utils/coinmarket/exchangeUtils';
 import networks from '@wallet-config/networks';
 import { getUnusedAddressFromAccount } from '@wallet-utils/coinmarket/coinmarketUtils';
 import { useCoinmarketRecomposeAndSign } from './useCoinmarketRecomposeAndSign ';
@@ -38,6 +38,7 @@ export const useOffers = (props: Props) => {
         quotesRequest,
         fixedQuotes,
         floatQuotes,
+        dexQuotes,
         exchangeInfo,
         device,
         addressVerified,
@@ -52,6 +53,7 @@ export const useOffers = (props: Props) => {
         useState<ContextValues['suiteReceiveAccounts']>();
     const [innerFixedQuotes, setInnerFixedQuotes] = useState<ExchangeTrade[]>(fixedQuotes);
     const [innerFloatQuotes, setInnerFloatQuotes] = useState<ExchangeTrade[]>(floatQuotes);
+    const [innerDexQuotes, setInnerDexQuotes] = useState<ExchangeTrade[]>(dexQuotes);
     const [exchangeStep, setExchangeStep] = useState<ExchangeStep>('RECEIVING_ADDRESS');
     const {
         goto,
@@ -98,9 +100,13 @@ export const useOffers = (props: Props) => {
                 setCallInProgress(true);
                 const allQuotes = await invityAPI.getExchangeQuotes(quotesRequest);
                 setCallInProgress(false);
-                const [fixedQuotes, floatQuotes] = splitToFixedFloatQuotes(allQuotes, exchangeInfo);
+                const [fixedQuotes, floatQuotes, dexQuotes] = splitToQuoteCategories(
+                    allQuotes,
+                    exchangeInfo,
+                );
                 setInnerFixedQuotes(fixedQuotes);
                 setInnerFloatQuotes(floatQuotes);
+                setInnerDexQuotes(dexQuotes);
                 timer.reset();
             }
         };
@@ -233,6 +239,7 @@ export const useOffers = (props: Props) => {
         addressVerified,
         fixedQuotes: innerFixedQuotes,
         floatQuotes: innerFloatQuotes,
+        dexQuotes: innerDexQuotes,
         selectQuote,
         account,
         REFETCH_INTERVAL_IN_SECONDS,

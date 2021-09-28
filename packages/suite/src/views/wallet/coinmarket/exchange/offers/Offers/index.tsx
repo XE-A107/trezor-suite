@@ -80,6 +80,7 @@ const Offers = () => {
     const {
         fixedQuotes,
         floatQuotes,
+        dexQuotes,
         quotesRequest,
         selectedQuote,
         timer,
@@ -93,7 +94,8 @@ const Offers = () => {
     }, [setLayout]);
 
     if (!quotesRequest) return null;
-    const quotesCount = fixedQuotes?.length + floatQuotes?.length;
+    const quotesCount = fixedQuotes?.length + floatQuotes?.length + dexQuotes?.length;
+
     return (
         <Wrapper>
             {!selectedQuote && (
@@ -131,8 +133,9 @@ const Offers = () => {
                                     )}
                                 </SummaryRow>
                             </Header>
-                            {fixedQuotes?.length > 0 && <List quotes={fixedQuotes} isFixed />}
-                            {floatQuotes?.length > 0 && <List quotes={floatQuotes} />}
+                            {dexQuotes?.length > 0 && <List quotes={dexQuotes} type="dex" />}
+                            {fixedQuotes?.length > 0 && <List quotes={fixedQuotes} type="fixed" />}
+                            {floatQuotes?.length > 0 && <List quotes={floatQuotes} type="float" />}
                         </>
                     )}
                 </>

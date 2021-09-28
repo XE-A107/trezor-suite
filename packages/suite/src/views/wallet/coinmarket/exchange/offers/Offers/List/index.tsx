@@ -61,10 +61,10 @@ const RatesRow = styled.div`
 
 interface Props {
     quotes?: ExchangeTrade[];
-    isFixed?: boolean;
+    type: 'float' | 'fixed' | 'dex';
 }
 
-const List = ({ quotes, isFixed }: Props) => {
+const List = ({ quotes, type }: Props) => {
     const { quotesRequest } = useCoinmarketExchangeOffersContext();
     if (!quotesRequest || !quotes) return null;
 
@@ -75,15 +75,22 @@ const List = ({ quotes, isFixed }: Props) => {
             </Divider>
             <SummaryRow>
                 <Left>
-                    {isFixed ? (
+                    {type === 'fixed' && (
                         <RatesRow>
                             <Translation id="TR_EXCHANGE_FIXED_OFFERS" />
                             <StyledQuestionTooltip tooltip="TR_EXCHANGE_FIXED_OFFERS_INFO" />
                         </RatesRow>
-                    ) : (
+                    )}{' '}
+                    {type === 'float' && (
                         <RatesRow>
                             <Translation id="TR_EXCHANGE_FLOAT_OFFERS" />
                             <StyledQuestionTooltip tooltip="TR_EXCHANGE_FLOAT_OFFERS_INFO" />
+                        </RatesRow>
+                    )}
+                    {type === 'dex' && (
+                        <RatesRow>
+                            <Translation id="TR_EXCHANGE_DEX_OFFERS" />
+                            <StyledQuestionTooltip tooltip="TR_EXCHANGE_DEX_OFFERS_INFO" />
                         </RatesRow>
                     )}
                 </Left>

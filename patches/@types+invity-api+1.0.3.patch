@@ -1,0 +1,33 @@
+diff --git a/node_modules/@types/invity-api/index.d.ts b/node_modules/@types/invity-api/index.d.ts
+index 0c62fb2..2c43860 100755
+--- a/node_modules/@types/invity-api/index.d.ts
++++ b/node_modules/@types/invity-api/index.d.ts
+@@ -176,6 +176,7 @@ export interface ExchangeProviderInfo {
+     logo: string; // changenow-icon.jpg
+     isActive: boolean;
+     isFixedRate: boolean;
++    isDex: boolean;
+     buyTickers: string[];
+     sellTickers: string[];
+     addressFormats: StringMap; // specification of formats required by selected exchange
+@@ -225,6 +226,12 @@ export interface ExchangeTrade {
+     extraFieldDescription?: CoinExtraField;
+     tags?: ExchangeTradeTag[];
+     id?: string; // internal DB id
++    // DEX extra fields
++    isDex?: boolean;
++    approvalGasEstimate?: number;
++    approvalSendTxHash?: string;
++    swapGasEstimate?: number;
++    swapSendTxHash?: string;
+     // locally used fields
+     offerType?: 'bestRate' | 'favorite';
+ }
+@@ -245,6 +252,7 @@ export interface ExchangeTradeQuoteRequest {
+     send: string; // BTC
+     receive: string; // LTC
+     sendStringAmount?: string; // "0.01"
++    dex?: 'enable' | 'exclusively'; // 'enable' means add dex offers, 'exclusively' means only dex offers
+ }
+ 
+ export type ExchangeTradeQuoteResponse = ExchangeTrade[];

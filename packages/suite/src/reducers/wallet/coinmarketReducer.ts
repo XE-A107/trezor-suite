@@ -55,6 +55,7 @@ interface Exchange {
     quotesRequest?: ExchangeTradeQuoteRequest;
     fixedQuotes: ExchangeTrade[];
     floatQuotes: ExchangeTrade[];
+    dexQuotes: ExchangeTrade[];
     transactionId?: string;
     addressVerified?: string;
 }
@@ -102,6 +103,7 @@ export const initialState = {
         quotesRequest: undefined,
         fixedQuotes: [],
         floatQuotes: [],
+        dexQuotes: [],
         addressVerified: undefined,
     },
     sell: {
@@ -175,6 +177,7 @@ const coinmarketReducer = (
             case COINMARKET_EXCHANGE.SAVE_QUOTES:
                 draft.exchange.fixedQuotes = action.fixedQuotes;
                 draft.exchange.floatQuotes = action.floatQuotes;
+                draft.exchange.dexQuotes = action.dexQuotes;
                 break;
             case COINMARKET_EXCHANGE.VERIFY_ADDRESS:
                 draft.exchange.addressVerified = action.addressVerified;
