@@ -7,6 +7,7 @@ import { formatCryptoAmount } from '@wallet-utils/coinmarket/coinmarketUtils';
 import { isQuoteError } from '@wallet-utils/coinmarket/exchangeUtils';
 import { useCoinmarketExchangeOffersContext } from '@wallet-hooks/useCoinmarketExchangeOffers';
 import { CoinmarketProviderInfo } from '@wallet-components';
+import { useSelector } from '@suite-hooks';
 
 const Wrapper = styled.div`
     display: flex;
@@ -112,6 +113,17 @@ const StyledQuestionTooltip = styled(QuestionTooltip)`
     color: ${props => props.theme.TYPE_LIGHT_GREY};
 `;
 
+const DexFooter = styled.div`
+    display: flex;
+    margin: 0 30px;
+    padding: 20px 0;
+    border-top: 1px solid ${props => props.theme.STROKE_GREY};
+`;
+
+const DexText = styled.div`
+    margin: 0 10px;
+`;
+
 interface Props {
     className?: string;
     quote: ExchangeTrade;
@@ -148,12 +160,23 @@ function getQuoteError(quote: ExchangeTrade) {
 const Quote = ({ className, quote }: Props) => {
     const theme = useTheme();
     const { selectQuote, exchangeInfo, callInProgress } = useCoinmarketExchangeOffersContext();
+    const { feePerByte } = useSelector(state => ({
+        feePerByte: state.wallet.coinmarket.composedTransactionInfo.composed?.feePerByte,
+    }));
+
     const hasTag = false;
     const { exchange, receive, receiveStringAmount } = quote;
     const errorQuote = isQuoteError(quote);
 
     const provider =
         exchangeInfo?.providerInfos && exchange ? exchangeInfo?.providerInfos[exchange] : undefined;
+
+    let approvalFee: number | undefined;
+    let swapFee: number | undefined;
+    if (quote.isDex && quote.approvalGasEstimate && quote.swapGasEstimate && feePerByte) {
+        approvalFee = quote.approvalGasEstimate * Number(feePerByte) * 1e-9;
+        swapFee = quote.swapGasEstimate * Number(feePerByte) * 1e-9;
+    }
 
     return (
         <Wrapper className={className}>
@@ -193,6 +216,22 @@ const Quote = ({ className, quote }: Props) => {
                     <Value>{provider?.kycPolicy}</Value>
                 </Column>
             </Details>
+            {approvalFee && swapFee && !errorQuote && (
+                <DexFooter>
+                    <IconWrapper>
+                        <StyledIcon icon="INFO" size={12} />
+                    </IconWrapper>
+                    <DexText>
+                        <Translation
+                            id="TR_EXCHANGE_DEX_FEE_INFO"
+                            values={{
+                                approvalFee: formatCryptoAmount(approvalFee),
+                                swapFee: formatCryptoAmount(swapFee),
+                            }}
+                        />
+                    </DexText>
+                </DexFooter>
+            )}
             {errorQuote && (
                 <ErrorFooter>
                     <IconWrapper>
