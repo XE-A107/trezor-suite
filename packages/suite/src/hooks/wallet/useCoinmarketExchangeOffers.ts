@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import invityAPI from '@suite-services/invityAPI';
 import { useActions, useSelector, useDevice } from '@suite-hooks';
 import { useTimer } from '@suite-hooks/useTimeInterval';
@@ -13,6 +13,8 @@ import { splitToFixedFloatQuotes } from '@wallet-utils/coinmarket/exchangeUtils'
 import networks from '@wallet-config/networks';
 import { getUnusedAddressFromAccount } from '@wallet-utils/coinmarket/coinmarketUtils';
 import { useCoinmarketRecomposeAndSign } from './useCoinmarketRecomposeAndSign ';
+import { useCoinmarketNavigation } from '@wallet-hooks/useCoinmarketNavigation';
+import { InvityAPIReloadQuotesAfterSeconds } from '@wallet-constants/coinmarket/metadata';
 
 const getReceiveAccountSymbol = (
     symbol?: string,
@@ -32,7 +34,6 @@ const getReceiveAccountSymbol = (
 
 export const useOffers = (props: Props) => {
     const timer = useTimer();
-    const REFETCH_INTERVAL_IN_SECONDS = 30;
     const {
         selectedAccount,
         quotesRequest,
@@ -53,6 +54,7 @@ export const useOffers = (props: Props) => {
     const [innerFixedQuotes, setInnerFixedQuotes] = useState<ExchangeTrade[]>(fixedQuotes);
     const [innerFloatQuotes, setInnerFloatQuotes] = useState<ExchangeTrade[]>(floatQuotes);
     const [exchangeStep, setExchangeStep] = useState<ExchangeStep>('RECEIVING_ADDRESS');
+    const { navigateToExchange } = useCoinmarketNavigation(account);
     const {
         goto,
         saveTrade,
@@ -82,35 +84,31 @@ export const useOffers = (props: Props) => {
         invityAPI.setInvityAPIServer(invityAPIUrl);
     }
 
+    const getQuotes = useCallback(async () => {
+        if (!selectedQuote && quotesRequest) {
+            invityAPI.createInvityAPIKey(account.descriptor);
+            setCallInProgress(true);
+            const allQuotes = await invityAPI.getExchangeQuotes(quotesRequest);
+            setCallInProgress(false);
+            const [fixedQuotes, floatQuotes] = splitToFixedFloatQuotes(allQuotes, exchangeInfo);
+            setInnerFixedQuotes(fixedQuotes);
+            setInnerFloatQuotes(floatQuotes);
+            timer.reset();
+        }
+    }, [account.descriptor, exchangeInfo, quotesRequest, selectedQuote, timer]);
+
     useEffect(() => {
         if (!quotesRequest) {
-            goto('wallet-coinmarket-exchange', {
-                symbol: account.symbol,
-                accountIndex: account.index,
-                accountType: account.accountType,
-            });
+            navigateToExchange();
             return;
         }
-
-        const getQuotes = async () => {
-            if (!selectedQuote) {
-                invityAPI.createInvityAPIKey(account.descriptor);
-                setCallInProgress(true);
-                const allQuotes = await invityAPI.getExchangeQuotes(quotesRequest);
-                setCallInProgress(false);
-                const [fixedQuotes, floatQuotes] = splitToFixedFloatQuotes(allQuotes, exchangeInfo);
-                setInnerFixedQuotes(fixedQuotes);
-                setInnerFloatQuotes(floatQuotes);
-                timer.reset();
-            }
-        };
 
         if (!timer.isLoading && !timer.isStopped) {
             if (timer.resetCount >= 40) {
                 timer.stop();
             }
 
-            if (timer.timeSpend.seconds === REFETCH_INTERVAL_IN_SECONDS) {
+            if (timer.timeSpend.seconds === InvityAPIReloadQuotesAfterSeconds) {
                 timer.loading();
                 getQuotes();
             }
@@ -235,10 +233,10 @@ export const useOffers = (props: Props) => {
         floatQuotes: innerFloatQuotes,
         selectQuote,
         account,
-        REFETCH_INTERVAL_IN_SECONDS,
         receiveSymbol,
         receiveAccount,
         setReceiveAccount,
+        getQuotes,
     };
 };
 

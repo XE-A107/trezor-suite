@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import invityAPI from '@suite-services/invityAPI';
 import { useActions, useSelector, useDevice } from '@suite-hooks';
 import { useTimer } from '@suite-hooks/useTimeInterval';
@@ -10,10 +10,11 @@ import * as routerActions from '@suite-actions/routerActions';
 import { Props, ContextValues, SellStep } from '@wallet-types/coinmarketSellOffers';
 import * as notificationActions from '@suite-actions/notificationActions';
 import { useCoinmarketRecomposeAndSign } from './useCoinmarketRecomposeAndSign ';
+import { useCoinmarketNavigation } from '@wallet-hooks/useCoinmarketNavigation';
+import { InvityAPIReloadQuotesAfterSeconds } from '@wallet-constants/coinmarket/metadata';
 
 export const useOffers = (props: Props) => {
     const timer = useTimer();
-    const REFETCH_INTERVAL_IN_SECONDS = 30;
     const { selectedAccount, quotesRequest, alternativeQuotes, quotes, device } = props;
 
     const { account } = selectedAccount;
@@ -25,6 +26,7 @@ export const useOffers = (props: Props) => {
         SellFiatTrade[] | undefined
     >(alternativeQuotes);
     const [sellStep, setSellStep] = useState<SellStep>('BANK_ACCOUNT');
+    const { navigateToSell } = useCoinmarketNavigation(account);
     const {
         saveTrade,
         setIsFromRedirect,
@@ -58,26 +60,24 @@ export const useOffers = (props: Props) => {
 
     const { selectedFee, composed, recomposeAndSign } = useCoinmarketRecomposeAndSign();
 
+    const getQuotes = useCallback(async () => {
+        if (!selectedQuote && quotesRequest) {
+            invityAPI.createInvityAPIKey(account.descriptor);
+            setCallInProgress(true);
+            const allQuotes = await invityAPI.getSellQuotes(quotesRequest);
+            setCallInProgress(false);
+            const [quotes, alternativeQuotes] = processQuotes(allQuotes);
+            setInnerQuotes(quotes);
+            setInnerAlternativeQuotes(alternativeQuotes);
+            timer.reset();
+        }
+    }, [account.descriptor, quotesRequest, selectedQuote, timer]);
+
     useEffect(() => {
         if (!quotesRequest) {
-            goto('wallet-coinmarket-sell', {
-                symbol: account.symbol,
-                accountIndex: account.index,
-                accountType: account.accountType,
-            });
+            navigateToSell();
             return;
         }
-
-        const getQuotes = async () => {
-            if (!selectedQuote) {
-                invityAPI.createInvityAPIKey(account.descriptor);
-                const allQuotes = await invityAPI.getSellQuotes(quotesRequest);
-                const [quotes, alternativeQuotes] = processQuotes(allQuotes);
-                setInnerQuotes(quotes);
-                setInnerAlternativeQuotes(alternativeQuotes);
-                timer.reset();
-            }
-        };
 
         if (isFromRedirect && quotesRequest) {
             getQuotes();
@@ -89,7 +89,7 @@ export const useOffers = (props: Props) => {
                 timer.stop();
             }
 
-            if (timer.timeSpend.seconds === REFETCH_INTERVAL_IN_SECONDS) {
+            if (timer.timeSpend.seconds === InvityAPIReloadQuotesAfterSeconds) {
                 timer.loading();
                 getQuotes();
             }
@@ -226,10 +226,10 @@ export const useOffers = (props: Props) => {
         setSellStep,
         selectQuote,
         account,
-        REFETCH_INTERVAL_IN_SECONDS,
         timer,
         sellInfo,
         needToRegisterOrVerifyBankAccount,
+        getQuotes,
     };
 };
 

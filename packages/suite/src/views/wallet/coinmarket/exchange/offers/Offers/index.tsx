@@ -9,9 +9,11 @@ import {
 } from '@wallet-components';
 import { variables, Icon, CoinLogo } from '@trezor/components';
 import { useCoinmarketExchangeOffersContext } from '@wallet-hooks/useCoinmarketExchangeOffers';
-
+import { useCoinmarketNavigation } from '@wallet-hooks/useCoinmarketNavigation';
+import { InvityAPIReloadQuotesAfterSeconds } from '@wallet-constants/coinmarket/metadata';
 import List from './List';
 import SelectedOffer from './SelectedOffer';
+import NoOffers from '@wallet-views/coinmarket/common/no-offers';
 
 const Wrapper = styled.div`
     padding: 0 32px 32px 32px;
@@ -19,15 +21,6 @@ const Wrapper = styled.div`
     @media screen and (max-width: ${variables.SCREEN_SIZE.LG}) {
         padding: 16px;
     }
-`;
-
-const NoQuotes = styled.div`
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-    min-height: 550px;
-    align-items: center;
-    flex: 1;
 `;
 
 const Header = styled.div`
@@ -83,10 +76,12 @@ const Offers = () => {
         quotesRequest,
         selectedQuote,
         timer,
-        REFETCH_INTERVAL_IN_SECONDS,
         account,
+        getQuotes,
+        callInProgress,
     } = useCoinmarketExchangeOffersContext();
     const { setLayout } = useContext(LayoutContext);
+    const { navigateToExchange } = useCoinmarketNavigation(account);
 
     useMemo(() => {
         if (setLayout) setLayout('Trezor Suite | Trade', undefined, <CoinmarketExchangeTopPanel />);
@@ -99,9 +94,12 @@ const Offers = () => {
             {!selectedQuote && (
                 <>
                     {!quotesCount && (
-                        <NoQuotes>
-                            <Translation id="TR_EXCHANGE_NO_OFFERS" />
-                        </NoQuotes>
+                        <NoOffers
+                            coinmarketRefreshTimeIsLoading={timer.isLoading || callInProgress}
+                            coinmarketRefreshTimeSeconds={timer.timeSpend.seconds}
+                            onBackButtonClick={navigateToExchange}
+                            onReloadOffersButtonClick={getQuotes}
+                        />
                     )}
                     {quotesCount > 0 && (
                         <>
@@ -121,7 +119,7 @@ const Offers = () => {
                                         <Right>
                                             <CoinmarketRefreshTime
                                                 isLoading={timer.isLoading}
-                                                refetchInterval={REFETCH_INTERVAL_IN_SECONDS}
+                                                refetchInterval={InvityAPIReloadQuotesAfterSeconds}
                                                 seconds={timer.timeSpend.seconds}
                                                 label={
                                                     <Translation id="TR_EXCHANGE_OFFERS_REFRESH" />

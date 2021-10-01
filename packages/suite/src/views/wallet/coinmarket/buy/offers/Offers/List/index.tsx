@@ -7,6 +7,7 @@ import Quote from './Quote';
 import { Translation } from '@suite-components';
 import { CoinmarketRefreshTime } from '@wallet-components';
 import { formatCryptoAmount } from '@wallet-utils/coinmarket/coinmarketUtils';
+import { InvityAPIReloadQuotesAfterSeconds } from '@wallet-constants/coinmarket/metadata';
 
 interface Props {
     isAlternative?: boolean;
@@ -74,8 +75,7 @@ const NoQuotes = styled.div`
 `;
 
 const List = ({ isAlternative, quotes }: Props) => {
-    const { account, quotesRequest, timer, REFETCH_INTERVAL_IN_SECONDS } =
-        useCoinmarketBuyOffersContext();
+    const { account, quotesRequest, timer } = useCoinmarketBuyOffersContext();
 
     if (!quotesRequest) return null;
     const { fiatStringAmount, fiatCurrency, cryptoStringAmount, wantCrypto, receiveCurrency } =
@@ -126,7 +126,7 @@ const List = ({ isAlternative, quotes }: Props) => {
                     <Right>
                         <CoinmarketRefreshTime
                             isLoading={timer.isLoading}
-                            refetchInterval={REFETCH_INTERVAL_IN_SECONDS}
+                            refetchInterval={InvityAPIReloadQuotesAfterSeconds}
                             seconds={timer.timeSpend.seconds}
                             label={<Translation id="TR_BUY_OFFERS_REFRESH" />}
                         />

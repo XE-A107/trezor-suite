@@ -32,6 +32,6 @@ export type ContextValues = {
     providersInfo?: BuyInfo['providerInfos'];
     selectQuote: (quote: BuyTrade) => void;
     goToPayment: (address: string) => void;
-    REFETCH_INTERVAL_IN_SECONDS: number;
     timer: Timer;
+    getQuotes: () => Promise<void>;
 };

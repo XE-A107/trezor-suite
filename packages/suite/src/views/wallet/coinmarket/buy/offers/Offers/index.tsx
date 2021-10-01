@@ -4,7 +4,8 @@ import { CoinmarketFooter, CoinmarketBuyTopPanel } from '@wallet-components';
 import { variables } from '@trezor/components';
 import { LayoutContext, Translation } from '@suite-components';
 import { useCoinmarketBuyOffersContext } from '@wallet-hooks/useCoinmarketBuyOffers';
-
+import { useCoinmarketNavigation } from '@wallet-hooks/useCoinmarketNavigation';
+import NoOffers from '@wallet-views/coinmarket/common/no-offers';
 import List from './List';
 import SelectedOffer from './SelectedOffer';
 
@@ -52,18 +53,11 @@ const DividerMiddle = styled.div`
     text-align: center;
 `;
 
-const NoQuotes = styled.div`
-    display: flex;
-    justify-content: center;
-    flex-direction: column;
-    min-height: 550px;
-    align-items: center;
-    flex: 1;
-`;
-
 const Offers = () => {
-    const { quotes, alternativeQuotes, selectedQuote } = useCoinmarketBuyOffersContext();
+    const { account, quotes, alternativeQuotes, selectedQuote, timer, getQuotes, callInProgress } =
+        useCoinmarketBuyOffersContext();
     const { setLayout } = useContext(LayoutContext);
+    const { navigateToBuy } = useCoinmarketNavigation(account);
 
     useEffect(() => {
         if (setLayout) setLayout('Trezor Suite | Trade', undefined, <CoinmarketBuyTopPanel />);
@@ -74,9 +68,12 @@ const Offers = () => {
             {!selectedQuote && (
                 <>
                     {quotes?.length === 0 && alternativeQuotes?.length === 0 ? (
-                        <NoQuotes>
-                            <Translation id="TR_BUY_NO_OFFERS" />
-                        </NoQuotes>
+                        <NoOffers
+                            coinmarketRefreshTimeIsLoading={timer.isLoading || callInProgress}
+                            coinmarketRefreshTimeSeconds={timer.timeSpend.seconds}
+                            onBackButtonClick={navigateToBuy}
+                            onReloadOffersButtonClick={getQuotes}
+                        />
                     ) : (
                         <>
                             <List quotes={quotes} />
