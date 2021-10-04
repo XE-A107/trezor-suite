@@ -1,5 +1,5 @@
+/* eslint-disable camelcase */
 const express = require('express');
-const bodyParser = require('body-parser');
 
 const port = 30002;
 
@@ -15,7 +15,7 @@ class DropboxMock {
 
         const app = express();
 
-        app.use(bodyParser.json());
+        app.use(express.json());
 
         app.use((req, res, next) => {
             this.requests.push(req.url);
@@ -90,8 +90,9 @@ class DropboxMock {
             res.end();
         });
 
+        // todo: this endpoint has been deprecated in favor of /search_v2.
         // https://api.dropboxapi.com/2/files/search
-        app.post('/2/files/search', bodyParser.raw(), (req, res) => {
+        app.post('/2/files/search', express.raw(), (req, res) => {
             const { query } = req.body;
 
             const file = this.files[`/apps/trezor/${query}`];
@@ -128,6 +129,48 @@ class DropboxMock {
             res.end();
         });
 
+        // https://api.dropboxapi.com/2/files/search_v2
+        app.post('/2/files/search_v2', express.raw(), (req, res) => {
+            const { query } = req.body;
+
+            const file = this.files[`/apps/trezor/${query}`];
+
+            res.writeHeader(200, { 'Content-Type': 'application/json' });
+
+            if (file) {
+                res.write(
+                    JSON.stringify({
+                        has_more: false,
+                        matches: [
+                            {
+                                match_type: { '.tag': 'filename' },
+                                metadata: {
+                                    '.tag': 'metadata',
+                                    metadata: {
+                                        '.tag': 'file',
+                                        name: query,
+                                        path_lower: `/apps/trezor/${query}`,
+                                        path_display: `/Apps/TREZOR/${query}`,
+                                        id: 'id:foo-id',
+                                        client_modified: '2020-10-07T09:52:45Z',
+                                        server_modified: '2020-10-07T09:52:45Z',
+                                        rev: '5b111ad693ec7a14c4460',
+                                        size: 89,
+                                        is_downloadable: true,
+                                        content_hash: 'foo-hash',
+                                    },
+                                },
+                            },
+                        ],
+                    }),
+                );
+            } else {
+                res.write(JSON.stringify({ matches: [], more: false, start: 0 }));
+            }
+
+            res.end();
+        });
+
         // https://content.dropboxapi.com/2/files/download
         app.post('/2/files/download', (req, res) => {
             const dropboxApiArgs = JSON.parse(req.headers['dropbox-api-arg']);
@@ -152,7 +195,7 @@ class DropboxMock {
         // https://content.dropboxapi.com/2/files/upload
         app.post(
             '/2/files/upload',
-            bodyParser.raw({ type: 'application/octet-stream' }),
+            express.raw({ type: 'application/octet-stream' }),
             (req, res) => {
                 const dropboxApiArgs = JSON.parse(req.headers['dropbox-api-arg']);
                 const { path } = dropboxApiArgs;
