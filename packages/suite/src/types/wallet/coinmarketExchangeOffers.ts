@@ -19,7 +19,7 @@ export interface Props extends ComponentProps {
     selectedAccount: Extract<AppState['wallet']['selectedAccount'], { status: 'loaded' }>;
 }
 
-export type ExchangeStep = 'RECEIVING_ADDRESS' | 'SEND_TRANSACTION';
+export type ExchangeStep = 'RECEIVING_ADDRESS' | 'SEND_TRANSACTION' | 'SEND_APPROVAL_TRANSACTION';
 
 export type ContextValues = {
     callInProgress: boolean;
@@ -30,6 +30,7 @@ export type ContextValues = {
     quotesRequest: AppState['wallet']['coinmarket']['exchange']['quotesRequest'];
     device: AppState['suite']['device'];
     selectedQuote?: ExchangeTrade;
+    setSelectedQuote: (quote?: ExchangeTrade) => void;
     suiteReceiveAccounts?: AppState['wallet']['accounts'];
     addressVerified: AppState['wallet']['coinmarket']['exchange']['addressVerified'];
     exchangeInfo?: ExchangeInfo;

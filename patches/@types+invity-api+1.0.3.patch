@@ -1,8 +1,17 @@
 diff --git a/node_modules/@types/invity-api/index.d.ts b/node_modules/@types/invity-api/index.d.ts
-index 0c62fb2..2c43860 100755
+index 0c62fb2..038f3a1 100755
 --- a/node_modules/@types/invity-api/index.d.ts
 +++ b/node_modules/@types/invity-api/index.d.ts
-@@ -176,6 +176,7 @@ export interface ExchangeProviderInfo {
+@@ -157,6 +157,8 @@ export type ExchangeTradeStatus =
+     | 'SENDING' // send tx was created, waiting for send tx to be sent
+     | 'CONFIRMING' // send tx was sent, waiting for tx to be mined (not used for Trezor Wallet)
+     | 'CONVERTING' // send tx was mined, money is on exchange, receive tx not yet created
++    | 'APPROVAL_REQ' // it is necessary to perform APPROVAL transaction for DEX
++    | 'APPROVAL_PENDING' // waiting for DEX approval tx to be confirmed
+     | ExchangeTradeFinalStatus;
+ 
+ export type ExchangeFee =
+@@ -176,6 +178,7 @@ export interface ExchangeProviderInfo {
      logo: string; // changenow-icon.jpg
      isActive: boolean;
      isFixedRate: boolean;
@@ -10,20 +19,41 @@ index 0c62fb2..2c43860 100755
      buyTickers: string[];
      sellTickers: string[];
      addressFormats: StringMap; // specification of formats required by selected exchange
-@@ -225,6 +226,12 @@ export interface ExchangeTrade {
+@@ -198,6 +201,12 @@ export interface ExchangeCoinInfo {
+ 
+ export type ExchangeCoinListResponse = ExchangeCoinInfo[];
+ 
++export type DexApprovalType =
++    | 'MINIMAL' // MINIMAL (default) is the lowest necessary to swap sendStringAmount
++    | 'INFINITE' // approves infinite amount
++    | 'ZERO' // resets approval
++    | 'PRESET'; // PRESET takes value from approvalStringAmount
++
+ export interface ExchangeTrade {
+     send?: string; // BTC
+     sendStringAmount?: string; // "0.01"
+@@ -225,6 +234,20 @@ export interface ExchangeTrade {
      extraFieldDescription?: CoinExtraField;
      tags?: ExchangeTradeTag[];
      id?: string; // internal DB id
 +    // DEX extra fields
 +    isDex?: boolean;
-+    approvalGasEstimate?: number;
-+    approvalSendTxHash?: string;
-+    swapGasEstimate?: number;
-+    swapSendTxHash?: string;
++    approvalGasEstimate?: number; // gas estimate of the approval transaction
++    approvalType?: DexApprovalType;
++    approvalStringAmount?: string; // amount to approve in case of PRESET or to return the minimal necessary amount in case of MINIMAL
++    approvalSendTxHash?: string; // txid of approval transaction
++    swapGasEstimate?: number; // gas estimate of the swap transaction
++    dexTx?: {
++        // tx data for approval or swap transaction
++        from: string;
++        to: string;
++        data: string;
++        value: string;
++    };
      // locally used fields
      offerType?: 'bestRate' | 'favorite';
  }
-@@ -245,6 +252,7 @@ export interface ExchangeTradeQuoteRequest {
+@@ -245,6 +268,7 @@ export interface ExchangeTradeQuoteRequest {
      send: string; // BTC
      receive: string; // LTC
      sendStringAmount?: string; // "0.01"

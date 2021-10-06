@@ -164,12 +164,15 @@ export const useOffers = (props: Props) => {
         setSuiteReceiveAccounts(undefined);
     }, [accounts, device, exchangeStep, receiveSymbol, selectedQuote]);
 
-    const confirmTrade = async (address: string, extraField?: string) => {
+    const confirmTrade = async (address: string, extraField?: string, trade?: ExchangeTrade) => {
         const { address: refundAddress } = getUnusedAddressFromAccount(account);
-        if (!selectedQuote || !refundAddress) return;
+        if (!trade) {
+            trade = selectedQuote;
+        }
+        if (!trade || !refundAddress) return;
         setCallInProgress(true);
         const response = await invityAPI.doExchangeTrade({
-            trade: selectedQuote,
+            trade,
             receiveAddress: address,
             refundAddress,
             extraField,
@@ -179,19 +182,87 @@ export const useOffers = (props: Props) => {
                 type: 'error',
                 error: 'No response from the server',
             });
-        } else if (response.error || !response.status || !response.orderId) {
+        } else if (
+            response.error ||
+            !response.status ||
+            !response.orderId ||
+            response.status === 'ERROR'
+        ) {
             addNotification({
                 type: 'error',
-                error: response.error || 'Invalid response from the server',
+                error: response.error || 'Error response from the server',
             });
-        } else {
-            setExchangeStep('SEND_TRANSACTION');
             setSelectedQuote(response);
+        } else if (response.status === 'APPROVAL_REQ' || response.status === 'APPROVAL_PENDING') {
+            setSelectedQuote(response);
+            setExchangeStep('SEND_APPROVAL_TRANSACTION');
+        } else if (response.status === 'CONFIRM') {
+            setSelectedQuote(response);
+            setExchangeStep('SEND_TRANSACTION');
+        } else {
+            // CONFIRMING, SUCCESS
+            await saveTrade(response, account, new Date().toISOString());
+            await saveTransactionId(response.orderId);
+            goto('wallet-coinmarket-exchange-detail', {
+                symbol: account.symbol,
+                accountIndex: account.index,
+                accountType: account.accountType,
+            });
         }
         setCallInProgress(false);
     };
 
+    const sendDexTransaction = async () => {
+        if (
+            selectedQuote &&
+            selectedQuote.dexTx &&
+            (selectedQuote.status === 'APPROVAL_REQ' || selectedQuote.status === 'CONFIRM')
+        ) {
+            const result = await recomposeAndSign(
+                selectedAccount,
+                selectedQuote.dexTx.to,
+                selectedQuote.dexTx.value,
+                selectedQuote.partnerPaymentExtraId,
+                selectedQuote.dexTx.data,
+            );
+
+            // simulate transaction
+            // const result = {
+            //     success: true,
+            //     payload: {
+            //         // txid: '0x0fbf6468df8d2f66ca567122964186d4da38e8ee04aa9210040055411c088263', // successful
+            //         txid: '0x4a2e513af96e6fdfc3a125181fca608008a8454d0101df80c1a7616791f79c8f', // failed
+            //     },
+            // };
+
+            // in case of not success, recomposeAndSign shows notification
+            if (result?.success) {
+                const { txid } = result.payload;
+                const quote = { ...selectedQuote };
+                if (selectedQuote.status === 'CONFIRM') {
+                    quote.receiveTxHash = txid;
+                    quote.status = 'CONFIRMING';
+                    await saveTrade(quote, account, new Date().toISOString());
+                    confirmTrade(quote.receiveAddress || '', undefined, quote);
+                } else {
+                    quote.approvalSendTxHash = txid;
+                    quote.status = 'APPROVAL_PENDING';
+                    confirmTrade(quote.receiveAddress || '', undefined, quote);
+                }
+            }
+        } else {
+            addNotification({
+                type: 'error',
+                error: 'Cannot send transaction, missing data',
+            });
+        }
+    };
+
     const sendTransaction = async () => {
+        if (selectedQuote?.isDex) {
+            sendDexTransaction();
+            return;
+        }
         if (
             selectedQuote &&
             selectedQuote.orderId &&
@@ -227,6 +298,7 @@ export const useOffers = (props: Props) => {
         confirmTrade,
         sendTransaction,
         selectedQuote,
+        setSelectedQuote,
         suiteReceiveAccounts,
         verifyAddress,
         device,

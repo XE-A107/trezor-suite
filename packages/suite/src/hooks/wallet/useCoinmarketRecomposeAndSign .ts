@@ -27,6 +27,7 @@ export const useCoinmarketRecomposeAndSign = () => {
             address: string,
             amount: string,
             destinationTag?: string,
+            ethereumDataHex?: string,
         ) => {
             const { account, network } = selectedAccount;
 
@@ -46,7 +47,7 @@ export const useCoinmarketRecomposeAndSign = () => {
                         ...DEFAULT_PAYMENT,
                         address,
                         amount,
-                        token: composed.token?.address || null,
+                        token: ethereumDataHex ? null : composed.token?.address || null, // if we pass ethereumDataHex, do not use the token, the details are in the ethereumDataHex
                     },
                 ],
                 selectedFee,
@@ -55,6 +56,7 @@ export const useCoinmarketRecomposeAndSign = () => {
                 estimatedFeeLimit: composed.estimatedFeeLimit,
                 options: ['broadcast'],
                 rippleDestinationTag: destinationTag,
+                ethereumDataHex,
             };
 
             // prepare form state for composeAction

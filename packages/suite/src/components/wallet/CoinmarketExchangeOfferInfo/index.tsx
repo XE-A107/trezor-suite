@@ -195,17 +195,19 @@ const CoinmarketExchangeOfferInfo = ({
                 )}
                 <RowWithBorder>
                     <Middle>
-                        {provider.isFixedRate ? (
+                        {provider.isFixedRate && !selectedQuote.isDex && (
                             <>
                                 <Translation id="TR_EXCHANGE_FIXED" />
                                 <StyledQuestionTooltip tooltip="TR_EXCHANGE_FIXED_OFFERS_INFO" />
                             </>
-                        ) : (
+                        )}
+                        {!provider.isFixedRate && !selectedQuote.isDex && (
                             <>
                                 <Translation id="TR_EXCHANGE_FLOAT" />
                                 <StyledQuestionTooltip tooltip="TR_EXCHANGE_FLOAT_OFFERS_INFO" />
                             </>
                         )}
+                        {selectedQuote.isDex && <Translation id="TR_EXCHANGE_DEX" />}
                     </Middle>
                 </RowWithBorder>
                 <Row>
