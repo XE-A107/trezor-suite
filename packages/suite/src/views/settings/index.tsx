@@ -256,6 +256,10 @@ const Settings = () => {
                                                 },
                                             });
                                             window.desktopApi!.toggleTor(!tor);
+                                            // does not make sense to use onion links if tor is being disabled
+                                            if (tor) {
+                                                setOnionLinks(false);
+                                            }
                                         }}
                                     />
                                 </ActionColumn>
