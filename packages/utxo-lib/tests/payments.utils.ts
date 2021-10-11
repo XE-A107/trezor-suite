@@ -112,6 +112,7 @@ export function preform(x: any): any {
         if (Array.isArray(x.redeem.witness)) x.redeem.witness = x.redeem.witness.map(fromHex);
         if (x.redeem.network) x.redeem.network = (BNETWORKS as any)[x.redeem.network];
     }
+    if (x.scripts) x.scripts = x.scripts.map(fromHex);
 
     return x;
 }

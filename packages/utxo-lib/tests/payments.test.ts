@@ -2,7 +2,7 @@ import * as PAYMENTS from '../src/payments';
 import type { PaymentCreator } from '../src/payments';
 import * as utils from './payments.utils';
 
-(['embed', 'p2ms', 'p2pk', 'p2pkh', 'p2sh', 'p2wpkh', 'p2wsh'] as const).forEach(p => {
+(['embed', 'p2ms', 'p2pk', 'p2pkh', 'p2sh', 'p2tr', 'p2wpkh', 'p2wsh'] as const).forEach(p => {
     describe(p, () => {
         const fn: PaymentCreator = PAYMENTS[p];
         // eslint-disable-next-line import/no-dynamic-require, @typescript-eslint/no-var-requires, global-require
