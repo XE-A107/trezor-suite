@@ -6,7 +6,6 @@ import { Section } from '@dashboard-components';
 import { Button, variables } from '@trezor/components';
 import { useTorUrl } from '@suite-hooks';
 import { useFetchNews } from '@dashboard-hooks/useNews';
-import { toTorUrl } from '@suite-utils/tor';
 import { BLOG_URL } from '@suite-constants/urls';
 import { ArrayElement } from '@suite/types/utils';
 
