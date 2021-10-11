@@ -193,12 +193,13 @@ export const useOffers = (props: Props) => {
                 error: response.error || 'Error response from the server',
             });
             setSelectedQuote(response);
-        } else if (response.status === 'APPROVAL_REQ' || response.status === 'APPROVAL_PENDING') {
+        } else if (
+            response.status === 'APPROVAL_REQ' ||
+            response.status === 'APPROVAL_PENDING' ||
+            response.status === 'CONFIRM'
+        ) {
             setSelectedQuote(response);
             setExchangeStep('SEND_APPROVAL_TRANSACTION');
-        } else if (response.status === 'CONFIRM') {
-            setSelectedQuote(response);
-            setExchangeStep('SEND_TRANSACTION');
         } else {
             // CONFIRMING, SUCCESS
             await saveTrade(response, account, new Date().toISOString());
