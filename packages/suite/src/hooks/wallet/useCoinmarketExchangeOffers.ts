@@ -165,11 +165,19 @@ export const useOffers = (props: Props) => {
     }, [accounts, device, exchangeStep, receiveSymbol, selectedQuote]);
 
     const confirmTrade = async (address: string, extraField?: string, trade?: ExchangeTrade) => {
+        let ok = false;
         const { address: refundAddress } = getUnusedAddressFromAccount(account);
         if (!trade) {
             trade = selectedQuote;
         }
-        if (!trade || !refundAddress) return;
+        if (!trade || !refundAddress) return false;
+
+        console.log('doExchangeTrade request', trade);
+        if (trade.isDex && trade.status === 'CONFIRM' && !trade.approvalSendTxHash) {
+            setExchangeStep('SEND_TRANSACTION');
+            return true;
+        }
+
         setCallInProgress(true);
         const response = await invityAPI.doExchangeTrade({
             trade,
@@ -177,6 +185,7 @@ export const useOffers = (props: Props) => {
             refundAddress,
             extraField,
         });
+        console.log('doExchangeTrade response', response);
         if (!response) {
             addNotification({
                 type: 'error',
@@ -193,17 +202,23 @@ export const useOffers = (props: Props) => {
                 error: response.error || 'Error response from the server',
             });
             setSelectedQuote(response);
-        } else if (
-            response.status === 'APPROVAL_REQ' ||
-            response.status === 'APPROVAL_PENDING' ||
-            response.status === 'CONFIRM'
-        ) {
+        } else if (response.status === 'APPROVAL_REQ' || response.status === 'APPROVAL_PENDING') {
             setSelectedQuote(response);
             setExchangeStep('SEND_APPROVAL_TRANSACTION');
+            ok = true;
+        } else if (response.status === 'CONFIRM') {
+            setSelectedQuote(response);
+            if (response.isDex) {
+                setExchangeStep('SEND_APPROVAL_TRANSACTION');
+            } else {
+                setExchangeStep('SEND_TRANSACTION');
+            }
+            ok = true;
         } else {
             // CONFIRMING, SUCCESS
             await saveTrade(response, account, new Date().toISOString());
             await saveTransactionId(response.orderId);
+            ok = true;
             goto('wallet-coinmarket-exchange-detail', {
                 symbol: account.symbol,
                 accountIndex: account.index,
@@ -211,6 +226,7 @@ export const useOffers = (props: Props) => {
             });
         }
         setCallInProgress(false);
+        return ok;
     };
 
     const sendDexTransaction = async () => {
@@ -227,14 +243,16 @@ export const useOffers = (props: Props) => {
                 selectedQuote.dexTx.data,
             );
 
-            // simulate transaction
+            // // simulate transaction
             // const result = {
             //     success: true,
             //     payload: {
-            //         // txid: '0x0fbf6468df8d2f66ca567122964186d4da38e8ee04aa9210040055411c088263', // successful
-            //         txid: '0x4a2e513af96e6fdfc3a125181fca608008a8454d0101df80c1a7616791f79c8f', // failed
+            //         txid: '0x0fbf6468df8d2f66ca567122964186d4da38e8ee04aa9210040055411c088263', // successful
+            //         // txid: '0x4a2e513af96e6fdfc3a125181fca608008a8454d0101df80c1a7616791f79c8f', // failed
             //     },
             // };
+
+            console.log('sendDexTransaction', result);
 
             // in case of not success, recomposeAndSign shows notification
             if (result?.success) {

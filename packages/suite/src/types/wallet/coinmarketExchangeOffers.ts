@@ -46,7 +46,7 @@ export type ContextValues = {
         account: Account,
         date: string,
     ) => CoinmarketExchangeAction;
-    confirmTrade: (address: string, extraField?: string) => void;
+    confirmTrade: (address: string, extraField?: string) => Promise<boolean>;
     sendTransaction: () => void;
     REFETCH_INTERVAL_IN_SECONDS: number;
     timer: Timer;

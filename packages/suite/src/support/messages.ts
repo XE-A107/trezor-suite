@@ -539,7 +539,7 @@ export default defineMessages({
     },
     TR_EXCHANGE_APPROVAL_PREAPPROVED: {
         defaultMessage:
-            'The approval transaction is not necessary at this moment, it was already approved before',
+            'The approval transaction is not necessary, it has already been approved before.',
         id: 'TR_EXCHANGE_APPROVAL_PREAPPROVED',
     },
     TR_EXCHANGE_APPROVAL_TO_SWAP_BUTTON: {

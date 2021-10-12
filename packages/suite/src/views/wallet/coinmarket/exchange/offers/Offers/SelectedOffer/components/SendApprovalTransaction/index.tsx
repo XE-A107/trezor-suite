@@ -67,6 +67,22 @@ const LoaderWrapper = styled.div`
     flex-direction: column;
 `;
 
+const Columns = styled.div`
+    display: flex;
+    flex-direction: row;
+`;
+
+const LeftColumn = styled.div`
+    display: flex;
+    flex: 1;
+`;
+
+const RightColumn = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    flex: 1;
+`;
+
 const ErrorWrapper = styled(LoaderWrapper)`
     color: ${props => props.theme.TYPE_RED};
 `;
@@ -85,7 +101,9 @@ const SendApprovalTransactionComponent = () => {
         confirmTrade,
         sendTransaction,
     } = useCoinmarketExchangeOffersContext();
-    const [approvalType, setApprovalType] = useState<DexApprovalType>('MINIMAL');
+    const [approvalType, setApprovalType] = useState<DexApprovalType>(
+        selectedQuote?.status === 'CONFIRM' ? 'ZERO' : 'MINIMAL',
+    );
     const [refreshCount, setRefreshCount] = useState(0);
     const invokeRefresh = () => {
         if (shouldRefresh(selectedQuote)) {
@@ -132,7 +150,7 @@ const SendApprovalTransactionComponent = () => {
     const selectApprovalValue = (type: DexApprovalType) => {
         setApprovalType(type);
         selectedQuote.approvalType = type;
-        confirmTrade(dexTx.from);
+        return confirmTrade(dexTx.from);
     };
 
     return (
@@ -246,37 +264,52 @@ const SendApprovalTransactionComponent = () => {
                             </Value>
                         </>
                     )}
-                    <Value>
-                        <RadioButton
-                            isChecked={approvalType === 'ZERO'}
-                            onClick={() => selectApprovalValue('ZERO')}
-                        >
-                            <RadioButtonInner>
-                                <P>
-                                    <Translation
-                                        id="TR_EXCHANGE_APPROVAL_VALUE_ZERO"
-                                        values={translationValues}
-                                    />
-                                </P>
-                                <LabelText>
-                                    <Translation
-                                        id="TR_EXCHANGE_APPROVAL_VALUE_ZERO_INFO"
-                                        values={translationValues}
-                                    />
-                                </LabelText>
-                            </RadioButtonInner>
-                            {selectedQuote.status === 'CONFIRM' && (
-                                <Button
-                                    variant="tertiary"
-                                    isLoading={callInProgress}
-                                    isDisabled={callInProgress}
-                                    onClick={sendTransaction}
-                                >
-                                    <Translation id="TR_EXCHANGE_CONFIRM_ON_TREZOR_SEND" />
-                                </Button>
-                            )}
-                        </RadioButton>
-                    </Value>
+                    {selectedQuote.send !== 'ETH' && (
+                        <Value>
+                            <RadioButton
+                                isChecked={approvalType === 'ZERO'}
+                                onClick={() => selectApprovalValue('ZERO')}
+                            >
+                                <RadioButtonInner>
+                                    <Columns>
+                                        <LeftColumn>
+                                            <P>
+                                                <Translation
+                                                    id="TR_EXCHANGE_APPROVAL_VALUE_ZERO"
+                                                    values={translationValues}
+                                                />
+                                            </P>
+                                        </LeftColumn>
+                                        {selectedQuote.status === 'CONFIRM' && (
+                                            <RightColumn>
+                                                <Button
+                                                    variant="tertiary"
+                                                    isLoading={callInProgress}
+                                                    isDisabled={callInProgress}
+                                                    onClick={async () => {
+                                                        const ok = await selectApprovalValue(
+                                                            'ZERO',
+                                                        );
+                                                        if (ok) {
+                                                            sendTransaction();
+                                                        }
+                                                    }}
+                                                >
+                                                    <Translation id="TR_EXCHANGE_CONFIRM_ON_TREZOR_SEND" />
+                                                </Button>
+                                            </RightColumn>
+                                        )}
+                                    </Columns>
+                                    <LabelText>
+                                        <Translation
+                                            id="TR_EXCHANGE_APPROVAL_VALUE_ZERO_INFO"
+                                            values={translationValues}
+                                        />
+                                    </LabelText>
+                                </RadioButtonInner>
+                            </RadioButton>
+                        </Value>
+                    )}
                 </Row>
             )}
 
@@ -290,7 +323,6 @@ const SendApprovalTransactionComponent = () => {
                     </BreakableValue>
                 </Row>
             )}
-
             {selectedQuote.status === 'APPROVAL_REQ' && (
                 <ButtonWrapper>
                     <Button
