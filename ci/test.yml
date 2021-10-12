@@ -16,6 +16,10 @@
     ## when debugging or developing tests it does not make sense to have retries,
     ## in other cases retries are useful to avoid occasional failures due to flaky tests
     ALLOW_RETRY: 1
+  cache:
+    key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+    paths:
+      - .yarn/
   before_script:
     - docker login $CI_DEPENDENCY_PROXY_SERVER -u $CI_DEPENDENCY_PROXY_USER -p $CI_DEPENDENCY_PROXY_PASSWORD
   script:
