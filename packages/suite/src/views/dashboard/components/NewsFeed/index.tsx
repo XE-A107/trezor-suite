@@ -4,7 +4,7 @@ import Truncate from 'react-truncate';
 import { Translation } from '@suite-components';
 import { Section } from '@dashboard-components';
 import { Button, variables } from '@trezor/components';
-import { useTorUrl } from '@suite-hooks';
+import { useExternalLink } from '@suite-hooks';
 import { useFetchNews } from '@dashboard-hooks/useNews';
 import { BLOG_URL } from '@suite-constants/urls';
 import { ArrayElement } from '@suite/types/utils';
@@ -86,8 +86,8 @@ type PostComponentProps = ArrayElement<ReturnType<typeof useFetchNews>['posts']>
 };
 
 const PostComponent = (props: PostComponentProps) => {
-    const url = useTorUrl(props.link);
-    const thumbnail = useTorUrl(props.thumbnail);
+    const url = useExternalLink(props.link);
+    const thumbnail = useExternalLink(props.thumbnail);
 
     return (
         <Post target="_blank" rel="noopener noreferrer" href={url} data-test={props['data-test']}>
@@ -126,7 +126,7 @@ const NewsFeed = ({ maxVisibleCount = 9 }: Props) => {
 
     const { posts, isError, fetchCount, incrementFetchCount } = useFetchNews();
     const theme = useTheme();
-    const mediumUrl = useTorUrl(BLOG_URL);
+    const mediumUrl = useExternalLink(BLOG_URL);
     if (isError) return null;
 
     return (

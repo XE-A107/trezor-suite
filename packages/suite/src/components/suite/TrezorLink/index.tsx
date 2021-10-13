@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link, LinkProps } from '@trezor/components';
-import { useTorUrl } from '@suite-hooks';
+import { useExternalLink } from '@suite-hooks';
 
 const TrezorLink = (props: LinkProps) => {
-    const url = useTorUrl(props.href);
+    const url = useExternalLink(props.href);
 
     return <Link {...props} href={url} />;
 };

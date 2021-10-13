@@ -2,7 +2,10 @@ import { useMemo } from 'react';
 import { useSelector } from '@suite-hooks';
 import { toTorUrl } from '@suite-utils/tor';
 
-export const useTorUrl = (originalUrl?: string) => {
+/**
+ * Returns plain url or onion url if available and tor is active
+ */
+export const useExternalLink = (originalUrl?: string) => {
     const { tor, torOnionLinks } = useSelector(state => ({
         tor: state.suite.tor,
         torOnionLinks: state.suite.settings.torOnionLinks,
