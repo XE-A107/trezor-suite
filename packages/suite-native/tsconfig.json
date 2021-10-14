@@ -268,7 +268,8 @@
         "module": "esnext",
         "noUnusedParameters": true,
         "sourceMap": true,
-        "strict": true
+        "strict": true,
+        "useUnknownInCatchVariables": false
     },
     "include": [
         "./src/App.tsx",
