@@ -1,9 +1,8 @@
 import WebSocket from 'ws';
 import { EventEmitter } from 'events';
 import { CustomError } from '../../constants/errors';
-import { Responses } from '@blockfrost/blockfrost-js';
 import { create as createDeferred, Deferred } from '../../utils/deferred';
-import { Send } from '../../types/cardano';
+import { Send, BlockContent } from '../../types/cardano';
 import { AccountInfoParams, EstimateFeeParams } from '../../types/params';
 
 const NOT_INITIALIZED = new CustomError('websocket_not_initialized');
@@ -244,7 +243,7 @@ export default class Socket extends EventEmitter {
         this.subscriptions.push({
             id,
             type: 'block',
-            callback: (result: Responses['block_content']) => {
+            callback: (result: BlockContent) => {
                 this.emit('block', result);
             },
         });
