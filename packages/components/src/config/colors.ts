@@ -5,7 +5,7 @@ export const THEME = {
     light: {
         THEME: 'light',
 
-        BG_GREEN: '#39a814',
+        BG_GREEN: '#00854D',
         BG_LIGHT_GREEN: '#effaec',
         BG_SECONDARY: '#effaec', // used for secondary button, in light mode same as LIGHT_GREEN
         BG_SECONDARY_HOVER: '#e8f3e5',
@@ -24,11 +24,11 @@ export const THEME = {
         BG_TOOLTIP_BORDER: '#3a3b3c',
         BG_ICON: 'transparent',
 
-        TYPE_GREEN: '#279503',
+        TYPE_GREEN: '#00854D',
         TYPE_ORANGE: '#c19009',
         TYPE_BLUE: '#1d88c5',
         TYPE_RED: '#cd4949',
-        TYPE_DARK_GREY: '#404040',
+        TYPE_DARK_GREY: '#1F1F1F',
         TYPE_LIGHT_GREY: '#808080',
         TYPE_LIGHTER_GREY: '#bdbdbd',
         TYPE_WHITE: '#ffffff',
@@ -42,7 +42,7 @@ export const THEME = {
 
         GRADIENT_SKELETON_START: '#eaeaea',
 
-        GRADIENT_GREEN_START: '#39a814',
+        GRADIENT_GREEN_START: '#00854D',
         GRADIENT_GREEN_END: '#4cbc26',
         GRADIENT_RED_START: '#d15b5b',
         GRADIENT_RED_END: '#e75f5f',
