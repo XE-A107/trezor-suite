@@ -21,6 +21,7 @@ msg-system config sign stable:
     key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     paths:
       - .yarn-nix/
+      - node_modules/
   script:
     - nix-shell --run "git lfs pull"
     - nix-shell --run "yarn install --frozen-lockfile --cache-folder .yarn-nix --prefer-offline"

@@ -4,6 +4,7 @@ lint:
     key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     paths:
       - .yarn/
+      - node_modules/
   script:
     - yarn install --frozen-lockfile --cache-folder .yarn --prefer-offline
     - yarn build:libs
@@ -15,6 +16,7 @@ typescript:
     key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     paths:
       - .yarn/
+      - node_modules/
   script:
     - yarn install --frozen-lockfile --cache-folder .yarn --prefer-offline
     - yarn build:libs
@@ -26,6 +28,7 @@ unit tests:
     key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     paths:
       - .yarn/
+      - node_modules/
   script:
     - yarn install --frozen-lockfile --cache-folder .yarn --prefer-offline
     - yarn build:libs
