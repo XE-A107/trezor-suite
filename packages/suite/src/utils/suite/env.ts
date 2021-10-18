@@ -50,25 +50,27 @@ export const isWindows = () => {
     return getPlatform().startsWith('Win');
 };
 
-export const isLinux = () => {
-    if (getProcessPlatform() === 'linux') return true;
-    if (typeof window === 'undefined') return;
-
-    return getPlatform().startsWith('Linux');
-};
-
 export const isIOs = () => ['iPhone', 'iPad', 'iPod'].includes(getPlatform());
 
 export const isAndroid = () => /Android/.test(getUserAgent());
 
 export const isChromeOs = () => /CrOS/.test(getUserAgent());
 
+export const isLinux = () => {
+    if (getProcessPlatform() === 'linux') return true;
+    if (typeof window === 'undefined') return;
+
+    // exclude Android and Chrome OS as window.navigator.platform of those OS is Linux
+    if (isAndroid() || isChromeOs()) return false;
+
+    return getPlatform().startsWith('Linux');
+};
+
 export const getOsName = () => {
     if (isWindows()) return 'windows';
     if (isMacOs()) return 'macos';
     if (isAndroid()) return 'android';
     if (isChromeOs()) return 'chromeos';
-    // Linux check has to be after Android and ChromeOS otherwise it would be incorrectly detected
     if (isLinux()) return 'linux';
     if (isIOs()) return 'ios';
 

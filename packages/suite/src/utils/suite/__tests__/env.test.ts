@@ -49,9 +49,11 @@ describe('isWindows', () => {
 
 describe('isLinux', () => {
     let navigatorPlatformGetter: any;
+    let userAgentGetter: any;
 
     beforeEach(() => {
         navigatorPlatformGetter = jest.spyOn(window.navigator, 'platform', 'get');
+        userAgentGetter = jest.spyOn(window.navigator, 'userAgent', 'get');
     });
 
     afterEach(() => {
@@ -63,6 +65,7 @@ describe('isLinux', () => {
             // @ts-ignore
             jest.spyOn(env, 'getProcessPlatform').mockImplementation(() => f.processPlatform);
 
+            userAgentGetter.mockReturnValue(f.userAgent);
             navigatorPlatformGetter.mockReturnValue(f.navigatorPlatform);
 
             expect(env.isLinux()).toEqual(f.result);

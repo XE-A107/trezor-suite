@@ -54,27 +54,52 @@ export const isWindows = [
 
 export const isLinux = [
     {
-        description: 'should be Linux according to process.platform',
+        description: 'should be Linux according to process.platform, userAgent should be ignored',
         processPlatform: 'linux',
+        userAgent:
+            'Mozilla/5.0 (Linux; Android 11; SM-A102U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Mobile Safari/537.36',
         navigatorPlatform: '',
         result: true,
     },
     {
-        description: 'should not be Linux according to process.platform',
+        description:
+            'should not be Linux according to process.platform, userAgent should be ignored',
         processPlatform: 'darwin',
+        userAgent: 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:24.0) Gecko/20100101 Firefox/24.0',
         navigatorPlatform: '',
         result: false,
     },
     {
-        description: 'should be Linux according to window.navigator.platform',
+        description:
+            'should be Linux according to window.navigator.platform, userAgent should be ignored',
         processPlatform: '',
+        userAgent:
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.366',
         navigatorPlatform: 'Linux armv7l',
         result: true,
     },
     {
-        description: 'should not be Linux according to window.navigator.platform',
+        description:
+            'should not be Linux according to window.navigator.platform, userAgent should be ignored',
         processPlatform: '',
+        userAgent: 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:24.0) Gecko/20100101 Firefox/24.0',
         navigatorPlatform: 'Win32',
+        result: false,
+    },
+    {
+        description: 'should not be Linux as it should be Android according to userAgent',
+        processPlatform: '',
+        userAgent:
+            'Mozilla/5.0 (Linux; Android 11; SM-A102U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.72 Mobile Safari/537.36',
+        navigatorPlatform: 'Linux armv7l',
+        result: false,
+    },
+    {
+        description: 'should not be Linux as it should be Chrome OS according to userAgent',
+        processPlatform: '',
+        userAgent:
+            'Mozilla/5.0 (X11; CrOS x86_64 14150.57.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.97 Safari/537.36',
+        navigatorPlatform: 'Linux armv7l',
         result: false,
     },
 ];
